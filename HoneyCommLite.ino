@@ -23,7 +23,6 @@
 #include "CCx.h"
 #include "CCxCfg.h"
 #include "rfBeeSerial.h"
-#include "SerialBitstream.h"
 #include "ManchesterByteStream.h"
 
 
@@ -75,7 +74,7 @@ volatile int      processing_state = SEARCHING_SYNC_WORD; // Holds the current s
 // Variables used to hold the processing state
 byte    byte_counter   = 0; // Used to beep track of data bytes inside packet
 byte    packet_length  = 0; // Holds the packetlength
-word    packet_word    = 0; // Buffer to hold manchester data
+word    first_nible    = 0; // Buffer to hold manchester data
 int     checksum       = 0; // Holds to checksum while processing packet bytes
 
 #if DEBUG
@@ -214,16 +213,21 @@ void process_byte(byte a_byte) {
    
    case READING_HEADER_1:
      // Stored the first part of the manchester encoded byte
-     packet_word = a_byte;
+     first_nible = decodeManchester(a_byte);
+     if (first_nible < 0)
+     {
+       error = 0x04;
+     }
      processing_state++;
      return; // Skip further processing
      break;
    
    case READING_HEADER_2:
      // Store second part of the manchester encoded byte
-     packet_word |= a_byte << 8;
-     if ( !manchesterByteStream.decodeByte((byte*)&packet_word, &a_byte) )
+     a_byte = decodeManchester(a_byte);
+     if (a_byte >= 0)
      {
+       a_byte = (first_nible << 4) | a_byte;
        checksum += a_byte; // update checksum
        if (byte_counter == 0)
        {
@@ -243,7 +247,7 @@ void process_byte(byte a_byte) {
            default:
              // Unknown header, print the value in HEX and set error
              Serial.print(a_byte, HEX);
-             error = 0x04;
+             error = 0x05;
          }
          processing_state--; // Return to processing the first part of the next manchester encoded byte
        }
@@ -272,20 +276,25 @@ void process_byte(byte a_byte) {
      {
        // Decoding error, terminate packet processing
        //Serial.print(a_byte, HEX);
-       error = 0x05;
+       error = 0x06;
      }
      break;
    
    case READING_BODY_1:
-     packet_word = a_byte;
+     first_nible = decodeManchester(a_byte);
+     if (first_nible < 0)
+     {
+       error = 0x07;
+     }
      processing_state++;
      return;
      break;
    
    case READING_BODY_2:
-     packet_word |= a_byte << 8;
-     if ( !manchesterByteStream.decodeByte((byte*)&packet_word, &a_byte) )
+     a_byte = decodeManchester(a_byte);
+     if (a_byte >= 0)
      {
+       a_byte = (first_nible << 4) | a_byte;
        checksum += a_byte;
        if (byte_counter == packet_length)
        {
@@ -307,24 +316,29 @@ void process_byte(byte a_byte) {
      {
        // Decoding error, terminate packet processing
        //Serial.print(a_byte, HEX);
-       error = 0x06;
+       error = 0x08;
      }
      break;
 
    case READING_CRC_1:
-     packet_word = a_byte;
+     first_nible = decodeManchester(a_byte);
+     if (first_nible < 0)
+     {
+       error = 0x09;
+     }
      processing_state++;
      return;
      break;
    
    case READING_CRC_2:
-     packet_word |= a_byte << 8;
-     if ( !manchesterByteStream.decodeByte((byte*)&packet_word, &a_byte) )
+     a_byte = decodeManchester(a_byte);
+     if (a_byte >= 0)
      {
+       a_byte = (first_nible << 4) | a_byte;
        checksum += a_byte;
        if ((checksum & 0xFF) != 0)
        {
-         error = 0x07; // Checksum error
+         error = 0x0A; // Checksum error
        }
        processing_state++;
      }
@@ -332,7 +346,7 @@ void process_byte(byte a_byte) {
      {
        // Decoding error, terminate packet processing
        //Serial.print(a_byte, HEX);
-       error = 0x08;
+       error = 0x0B;
      }
 #if HEX_PRINT
      if (a_byte < 0x10) Serial.print(F("0"));
@@ -351,7 +365,7 @@ void process_byte(byte a_byte) {
      }
      else
      {
-       error = 0x09;
+       error = 0x0C;
      }
      break;
   }
