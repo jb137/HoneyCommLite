@@ -23,8 +23,6 @@
 #include "CCx.h"
 #include "CCxCfg.h"
 #include "rfBeeSerial.h"
-#include "ManchesterByteStream.h"
-
 
 #define DEBUG 0      // Prints complete packets if turn on in HEX format
 #define HEX_PRINT 0  // Prints all data in HEX, too slow for real processing
