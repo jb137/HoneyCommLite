@@ -72,7 +72,7 @@ volatile int      processing_state = SEARCHING_SYNC_WORD; // Holds the current s
 // Variables used to hold the processing state
 byte    byte_counter   = 0; // Used to beep track of data bytes inside packet
 byte    packet_length  = 0; // Holds the packetlength
-word    first_nible    = 0; // Buffer to hold manchester data
+byte    first_nible    = 0; // Buffer to hold manchester data
 int     checksum       = 0; // Holds to checksum while processing packet bytes
 
 #if DEBUG
@@ -142,9 +142,9 @@ void find_sync_word(void) {
 /* Source:
    https://github.com/jrosser/honeymon/blob/master/decoder.cpp
 */
-char decodeManchester(byte manchester_byte)
+byte decodeManchester(byte manchester_byte)
 {
-    byte result = -1;
+    int result = 0xFF;
 
     switch(manchester_byte)
     {
@@ -212,7 +212,7 @@ void process_byte(byte a_byte) {
    case READING_HEADER_1:
      // Stored the first part of the manchester encoded byte
      first_nible = decodeManchester(a_byte);
-     if (first_nible < 0)
+     if (first_nible > 0x0F)
      {
        error = 0x04;
      }
@@ -223,7 +223,7 @@ void process_byte(byte a_byte) {
    case READING_HEADER_2:
      // Store second part of the manchester encoded byte
      a_byte = decodeManchester(a_byte);
-     if (a_byte >= 0)
+     if (a_byte <= 0x0F)
      {
        a_byte = (first_nible << 4) | a_byte;
        checksum += a_byte; // update checksum
@@ -280,7 +280,7 @@ void process_byte(byte a_byte) {
    
    case READING_BODY_1:
      first_nible = decodeManchester(a_byte);
-     if (first_nible < 0)
+     if (first_nible > 0x0F)
      {
        error = 0x07;
      }
@@ -290,7 +290,7 @@ void process_byte(byte a_byte) {
    
    case READING_BODY_2:
      a_byte = decodeManchester(a_byte);
-     if (a_byte >= 0)
+     if (a_byte <= 0x0F)
      {
        a_byte = (first_nible << 4) | a_byte;
        checksum += a_byte;
@@ -320,7 +320,7 @@ void process_byte(byte a_byte) {
 
    case READING_CRC_1:
      first_nible = decodeManchester(a_byte);
-     if (first_nible < 0)
+     if (first_nible > 0x0F)
      {
        error = 0x09;
      }
@@ -330,7 +330,7 @@ void process_byte(byte a_byte) {
    
    case READING_CRC_2:
      a_byte = decodeManchester(a_byte);
-     if (a_byte >= 0)
+     if (a_byte <= 0x0F)
      {
        a_byte = (first_nible << 4) | a_byte;
        checksum += a_byte;
@@ -387,7 +387,7 @@ void process_byte(byte a_byte) {
     {
       // Start looking for the sync word again
       processing_state = SEARCHING_SYNC_WORD;
-      // Print end block
+      // Print end block +++;
       // Split using /(.*?(?:\+{3}(?:E.)?;))/m
       Serial.print("+++;");
       
@@ -400,7 +400,7 @@ void process_byte(byte a_byte) {
       // Start looking for the sync word again
       processing_state = SEARCHING_SYNC_WORD;
       
-      // Print end block with error code
+      // Print end block with error code +++E.;
       // Split using /(.*?(?:\+{3}(?:E.)?;))/m
       // Error can be extracted using /\+{3}(E.)?;/m
       Serial.print("+++E");
@@ -432,7 +432,7 @@ void setup() {
   // Get ready to find the sync word
   sync_buffer      = 0;
   processing_state = SEARCHING_SYNC_WORD;
-  
+
   // Attach the find_sync_word interrupt function to the
   // falling edge of the serial clock connected to INT(1)
   attachInterrupt(SERIAL_CLK, find_sync_word, FALLING);
