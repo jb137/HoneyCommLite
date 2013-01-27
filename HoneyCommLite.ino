@@ -19,6 +19,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+// Compile for RFbee using board: Arduino Pro or Pro Mini (3.3V, 8MHz) w/ATmega 168
+
 #include "globals.h"
 #include "CCx.h"
 #include "CCxCfg.h"
@@ -32,13 +34,13 @@
 
 // We are looking for FF00, the data stream however
 // includes start/stop bits:
-// [0]11111111[1][0]00000000[1]
+// [0]10101010[1][0]10101010[1][0]11111111[1][0]00000000[1]
 // 
-// The last 16 bits are:
-// 11111[1][0]0 0000000[1]
+// The last 32 bits are:
+// 0[1][0]10101010[1][0]11111111[1][0]00000000[1]
 //   
 // Equals: 0xFC01
-#define SYNC_WORD     0xFC01
+#define SYNC_WORD     0x5557FC01
 
 // Processing states
 // For HEADER/BODY/CRC bytes are manchester encoded
@@ -60,8 +62,7 @@ enum processing_states
 };
 
 // Variables used in interrupt functions
-volatile word     sync_buffer       = 0; // LIFO buffer to search for sync word
-
+volatile long     sync_buffer       = 0; // LIFO buffer to search for sync word
 volatile byte     bit_counter       = 0; // Counts the bits coming in to build a byte
 volatile byte     byte_buffer       = 0; // Buffer used to gather the data bits coming in
 volatile byte     byte_read         = 0; // Filled with a data byte once complete
@@ -92,7 +93,7 @@ void find_sync_word(void) {
     {
       sync_buffer++;
     }
-    if (sync_buffer == 0xFC01)
+    if (sync_buffer == SYNC_WORD)
     {
       // The sync word has been detected, proceed to next state
       processing_state++;
