@@ -40,7 +40,8 @@
 // 0[1][0]10101010[1][0]11111111[1][0]00000000[1]
 //   
 // Equals: 0xFC01
-#define SYNC_WORD     0x5557FC01
+//#define SYNC_WORD     0x5557FC01
+#define SYNC_WORD     0xFC01
 
 // Processing states
 // For HEADER/BODY/CRC bytes are manchester encoded
@@ -62,7 +63,7 @@ enum processing_states
 };
 
 // Variables used in interrupt functions
-volatile long     sync_buffer       = 0; // LIFO buffer to search for sync word
+volatile word     sync_buffer       = 0; // LIFO buffer to search for sync word
 volatile byte     bit_counter       = 0; // Counts the bits coming in to build a byte
 volatile byte     byte_buffer       = 0; // Buffer used to gather the data bits coming in
 volatile byte     byte_read         = 0; // Filled with a data byte once complete
@@ -244,9 +245,11 @@ void process_byte(byte a_byte) {
              packet_length = 9;
              break;
            default:
-             // Unknown header, print the value in HEX and set error
-             Serial.print(a_byte, HEX);
-             error = 0x05;
+             // Set length to longest header
+             // <header: 1 byte><id0:3 bytes><id1:3 bytes><id2:3 bytes><p0:1 bytes><p1:1 bytes><command:2 bytes><length:1 byte> == 15 bytes
+             packet_length = 15;
+             //Serial.print(a_byte);
+             //error = 0x05;
          }
          processing_state--; // Return to processing the first part of the next manchester encoded byte
        }
