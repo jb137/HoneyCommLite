@@ -1,4 +1,3 @@
-
 About the project
 -----------------
 
@@ -6,10 +5,8 @@ The goal of this project is to provide an alternative firmware for
 Seeed Studio's RFBee. 
 
 Using this device connected to a PC or a Microcontroller, it is possible to
-listen to the communication between a CM67z Central User Panel and one or more
-HR80 radiator controllers. Further, using this alternative firmware, it is
-possible to sent commands to the HR80 radiator controllers, e.g. to define
-temperature settings for a particular "zone" in a building.
+listen to the communication between a CM67z/Evotouch and one or more modules
+like HR80/BDR91/DTS91 etc using 868MHz RF.
 
 The RFBee is a RF module providing easy and flexible wireless data transmission 
 between devices. It is based on a AVR Atmega168 working as a fully functional
@@ -21,9 +18,8 @@ Find more information about the RFBee here: http://www.seeedstudio.com
 How to contribute
 -----------------
 
-The firmware was created and tested in an environment with a CM67z Central User
-Panel and several HR80 radiator controllers. Some of the messages received over
-the air are well known, while the meaning of other messages remains unknown.
+The firmware was created and tested in an environment with Evotouch and CM67c
+controllers. Some message types have are well understood some are not.
 
 You can contribute by testing this software with other devices of the 
 manufacturer of the devices named above and let us know what you found out, 
